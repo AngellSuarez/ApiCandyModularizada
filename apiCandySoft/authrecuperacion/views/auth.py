@@ -17,7 +17,7 @@ from usuario.serializers.cliente import ClienteSerializer
 from usuario.serializers.manicurista import ManicuristaSerializer
 from usuario.serializers.usuario import UsuarioSerializer
 
-from utils.email_utils import enviar_correo;
+from utils.email_utils import enviar_correo_registro;
 
 # Vista personalizada para login con JWT
 class LoginView(TokenObtainPairView):
@@ -87,9 +87,7 @@ class RegistroClienteView(generics.CreateAPIView):
         cliente = serializer.save()
 
         # ✅ Enviar correo de confirmación después del registro
-        asunto = "Bienvenido a CandyNails 💅"
-        mensaje = f"Hola {cliente.usuario.nombre}, gracias por registrarte en CandyNails. 🎉"
-        enviar_correo(cliente.usuario.correo, asunto, mensaje)
+        enviar_correo_registro(cliente.usuario.correo,cliente.usuario.nombre)
 
         # ✅ Generar tokens JWT para el usuario recién creado
         refresh = RefreshToken.for_user(cliente.usuario)

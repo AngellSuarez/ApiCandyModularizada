@@ -8,7 +8,7 @@ from random import randint
 from datetime import timedelta
 
 from ..models import CodigoRecuperacion
-from utils.email_utils import enviar_correo
+from utils.email_utils import enviar_correo_cambio_password
 
 class ConfirmarCodigoRecuperacionView(APIView):
     def post(self, request):
@@ -34,5 +34,7 @@ class ConfirmarCodigoRecuperacionView(APIView):
 
         # Eliminar el código
         codigo_obj.delete()
+        enviar_correo_cambio_password(usuario.correo, usuario.nombre)
+
 
         return Response({"mensaje": "Contraseña actualizada correctamente."}, status=status.HTTP_200_OK)

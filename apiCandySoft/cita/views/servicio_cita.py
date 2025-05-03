@@ -9,7 +9,7 @@ from ..serializers.servicio_cita import ServicioCitaSerializer
 
 from servicio.models import Servicio
 
-from utils.email_utils import enviar_correo
+from utils.email_utils import enviar_correo_confirmacion
 
 class ServicioCitaViewSet(viewsets.ModelViewSet):
     queryset = ServicioCita.objects.all()
@@ -50,6 +50,7 @@ class ServicioCitaViewSet(viewsets.ModelViewSet):
 
         created_items = []
         errors = []
+        citas_servicios = {}  # agrupamos servicios por cita_id
 
         for entry in data:
             try:
@@ -61,12 +62,43 @@ class ServicioCitaViewSet(viewsets.ModelViewSet):
 
                 serializer = self.get_serializer(data=entry)
                 if serializer.is_valid():
-                    serializer.save()
+                    servicio_cita = serializer.save()
+
+                    cita = servicio_cita.cita_id
+                    cliente = cita.cliente_id
+
+                    # Agrupar los servicios por cita
+                    if cita.id not in citas_servicios:
+                        citas_servicios[cita.id] = {
+                            "cita": cita,
+                            "cliente": cliente,
+                            "servicios": []
+                        }
+
+                    citas_servicios[cita.id]["servicios"].append({
+                        "nombre": servicio_cita.servicio_id.nombre,
+                        "subtotal": servicio_cita.subtotal
+                    })
+
                     created_items.append(serializer.data)
                 else:
                     errors.append(serializer.errors)
             except Exception as e:
                 errors.append({"error": str(e)})
+
+        # Enviar un solo correo por cita
+        for data in citas_servicios.values():
+            cita = data["cita"]
+            cliente = data["cliente"]
+            servicios = data["servicios"]
+
+            enviar_correo_confirmacion(
+                destinatario=cliente.correo,
+                nombre_cliente=cliente.nombre,
+                fecha=cita.Fecha,
+                hora=cita.Hora,
+                servicios=servicios  # nuevo parámetro
+            )
 
         if errors:
             return Response({"created": created_items, "errors": errors}, status=status.HTTP_207_MULTI_STATUS)

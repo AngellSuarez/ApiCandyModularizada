@@ -10,7 +10,7 @@ from ..serializers.cita_venta import CitaVentaSerializer
 from usuario.models.cliente import Cliente
 from usuario.models.manicurista import Manicurista
 
-from utils.email_utils import enviar_correo
+#from utils.email_utils import enviar_correo
 
 class CitaVentaViewSet(viewsets.ModelViewSet):
     serializer_class = CitaVentaSerializer
@@ -56,7 +56,7 @@ Le esperamos en nuestra ubicación. Si necesita modificar o cancelar su cita, po
             """
 
             # Enviar el correo
-            enviar_correo(cliente.correo, asunto, mensaje)
+            #enviar_correo(cliente.correo, asunto, mensaje)
 
             headers = self.get_success_headers(serializer.data)
             return Response(

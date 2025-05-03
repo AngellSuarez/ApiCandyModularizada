@@ -8,7 +8,7 @@ from random import randint
 from datetime import timedelta
 
 from ..models import CodigoRecuperacion
-from utils.email_utils import enviar_correo
+from utils.email_utils import enviar_correo_recuperacion
 
 class SolicitarCodigoRecuperacionView(APIView):
     def post(self, request):
@@ -37,9 +37,9 @@ class SolicitarCodigoRecuperacionView(APIView):
         )
 
         asunto = "Código de recuperación de contraseña"
-        mensaje = f"Tu código de recuperación es: {codigo}. Expira en 10 minutos."
 
-        if enviar_correo(correo, asunto, mensaje):
+
+        if enviar_correo_recuperacion(correo, asunto, codigo):
             return Response({"mensaje": "Código enviado al correo."}, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Error al enviar el correo."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
