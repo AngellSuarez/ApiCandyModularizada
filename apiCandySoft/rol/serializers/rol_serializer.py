@@ -22,7 +22,7 @@ class RolSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("La descripcion no puede ser solo numeros");
             return descripcion;
         
-        def validate_estado(self, estado):
+"""         def validate_estado(self, estado):
             if not estado:
                 raise serializers.ValidationError("El estado no puede estar vacio");
-            return estado;
+            return estado; """

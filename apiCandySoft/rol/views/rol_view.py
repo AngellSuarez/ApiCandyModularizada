@@ -6,6 +6,9 @@ from rest_framework.permissions import AllowAny;
 from ..models import Rol
 from ..serializers import RolSerializer
 
+""" from ...utils.decorador_permisos import verificar_permiso """
+
+#@verificar_permiso('rol')
 class RolViewSet(viewsets.ModelViewSet):
     queryset = Rol.objects.all();
     serializer_class = RolSerializer;

@@ -27,7 +27,7 @@ class Cliente(models.Model):
     
     correo = models.EmailField(max_length=40, null=False)
     
-    celular = models.CharField(max_length=13, null=False)
+    celular = models.CharField(max_length=13, blank=True, null=True)
     
     estado = models.CharField(max_length=8, choices=ESTADOS_CHOICES, default="activo")
 
