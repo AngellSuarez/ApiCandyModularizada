@@ -62,11 +62,11 @@ class ClienteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("El correo inscrito ya existe")
         return correo
 
-    def validate_celular(self, celular):
+    """ def validate_celular(self, celular):
         instance = getattr(self, 'instance', None)
         if Cliente.objects.exclude(pk=instance.pk if instance else None).filter(celular=celular).exists():
             raise serializers.ValidationError("El celular inscrito ya existe")
-        return celular
+        return celular """
 
     def validate_nombre(self, nombre):
         if not nombre:
