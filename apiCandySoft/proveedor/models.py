@@ -12,9 +12,10 @@ class Proveedor(models.Model):
         ("CC", "cedula de ciudadania"),
     );
     
-    nombre = models.CharField(max_length=60,null=False)
+    nombre_empresa = models.CharField(max_length=60,null=True,blank=True)
     
-    representante = models.CharField(max_length=60)
+    nombre_representante = models.CharField(max_length=60, null=True, blank=True)
+    apellido_representante = models.CharField(max_length=60, null=True,blank=True)
     
     tipo_persona = models.CharField(max_length=8,choices=TIPO_PERSONA_CHOICES,null=False)
     
