@@ -6,9 +6,9 @@ from django.contrib.auth.password_validation import validate_password
 
 class ManicuristaSerializer(serializers.ModelSerializer):
     # Campos para escritura
-    username = serializers.CharField(write_only=True)
-    password = serializers.CharField(write_only=True)
-    rol_id = serializers.PrimaryKeyRelatedField(queryset=Rol.objects.all(), write_only=True)
+    username = serializers.CharField(write_only=True,required = False)
+    password = serializers.CharField(write_only=True, required = False)
+    rol_id = serializers.PrimaryKeyRelatedField(queryset=Rol.objects.all(), write_only=True, required = False)
 
     # Campos para lectura
     username_out = serializers.SerializerMethodField(read_only=True)
@@ -57,15 +57,20 @@ class ManicuristaSerializer(serializers.ModelSerializer):
         return numero_documento
 
     def validate_correo(self, correo):
-        instance = getattr(self, 'instance', None)
-        usuario_id = None
-        if instance and hasattr(instance, 'usuario'):
-            usuario_id = instance.usuario.pk
-        if Usuario.objects.exclude(pk=usuario_id).filter(correo=correo).exists():
-            raise serializers.ValidationError("El correo ya existe")
+        queryset = Usuario.objects.filter(correo=correo)
+
+    # Excluir el usuario actual si estás actualizando
+        if self.instance and hasattr(self.instance, 'usuario'):
+            queryset = queryset.exclude(pk=self.instance.usuario.pk)
+
+        if queryset.exists():
+            raise serializers.ValidationError("El correo ya se encuentra registrado")
+
         if not correo:
-            raise serializers.ValidationError("El correo no puede estar vacio")
+            raise serializers.ValidationError("El correo es requerido")
+
         return correo
+
 
     def validate_celular(self, celular):
         instance = getattr(self, 'instance', None)
@@ -119,21 +124,45 @@ class ManicuristaSerializer(serializers.ModelSerializer):
         return manicurista
 
     def update(self, instance, validated_data):
-        usuario = instance.usuario
+        print(f"Datos recibidos para actualizar: {validated_data}")
+        print(f"Instancia antes de actualizar - nombre: {instance.nombre}, apellido: {instance.apellido}")
 
-        usuario_fields = ['nombre', 'apellido', 'correo', 'username', 'password']
+        # Manejar campos de usuario
+        usuario = instance.usuario
+        username = validated_data.pop('username', None)
+        password = validated_data.pop('password', None)
+        rol_id = validated_data.pop('rol_id', None)
+
+        if username is not None:
+            usuario.username = username
+        if password is not None:
+            usuario.set_password(password)
+        if rol_id is not None:
+            usuario.rol_id = rol_id
+
+        # Actualizar campos de usuario y guardar
+        usuario_fields = ['nombre', 'apellido', 'correo']
         for field in usuario_fields:
             if field in validated_data:
-                value = validated_data.pop(field)
-                if field == 'password':
-                    usuario.set_password(value)
-                else:
-                    setattr(usuario, field, value)
+                setattr(usuario, field, validated_data.get(field))
 
         usuario.save()
+        print(f"Usuario actualizado: {usuario.nombre}, {usuario.apellido}")
 
+        # Actualizar campos de manicurista
         for attr, value in validated_data.items():
+            print(f"Actualizando manicurista: {attr} = {value}")
             setattr(instance, attr, value)
 
-        instance.save()
+        # Intentar diferentes formas de guardar por si acaso
+        try:
+            instance.save()
+            print(f"Instancia después de guardar - nombre: {instance.nombre}, apellido: {instance.apellido}")
+
+            # Forzar recarga desde la base de datos para verificar
+            refreshed = Manicurista.objects.get(pk=instance.pk)
+            print(f"Verificación desde DB - nombre: {refreshed.nombre}, apellido: {refreshed.apellido}")
+        except Exception as e:
+            print(f"Error al guardar: {str(e)}")
+
         return instance
