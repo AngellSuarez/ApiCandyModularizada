@@ -6,9 +6,9 @@ from django.contrib.auth.password_validation import validate_password
 
 class ClienteSerializer(serializers.ModelSerializer):
     # Entrada en POST/PUT/PATCH
-    username = serializers.CharField(write_only=True)
-    password = serializers.CharField(write_only=True)
-    rol_id = serializers.PrimaryKeyRelatedField(queryset=Rol.objects.all(), write_only=True)
+    username = serializers.CharField(write_only=True, required = False)
+    password = serializers.CharField(write_only=True,required = False)
+    rol_id = serializers.PrimaryKeyRelatedField(queryset=Rol.objects.all(), write_only=True, required = False)
 
     # Salida en GET
     username_out = serializers.SerializerMethodField(read_only=True)
@@ -108,21 +108,34 @@ class ClienteSerializer(serializers.ModelSerializer):
         return cliente
 
     def update(self, instance, validated_data):
+        # 1. Manejo del usuario asociado
         usuario = instance.usuario
+        username = validated_data.pop('username', None)
+        password = validated_data.pop('password', None)
+        rol_id = validated_data.pop('rol_id', None)
 
-        usuario_fields = ['nombre', 'apellido', 'correo', 'username', 'password']
+        # Actualizar usuario
+        if username is not None:
+            usuario.username = username
+        if password is not None:
+            usuario.set_password(password)
+        if rol_id is not None:
+            usuario.rol_id = rol_id
+
+        # Campos compartidos que necesitan actualizarse en Usuario
+        usuario_fields = ['nombre', 'apellido', 'correo']
         for field in usuario_fields:
             if field in validated_data:
-                value = validated_data.pop(field)
-                if field == 'password':
-                    usuario.set_password(value)
-                else:
-                    setattr(usuario, field, value)
+                setattr(usuario, field, validated_data.get(field))
 
+        # Guardar usuario
         usuario.save()
 
+        # 2. Actualizar campos del cliente
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        instance.save()
+        # 3. Guardar cliente
+        instance.save(force_update=True)
+
         return instance
