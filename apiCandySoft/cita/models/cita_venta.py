@@ -6,11 +6,17 @@ from usuario.models.cliente import Cliente
 
 class CitaVenta(models.Model):
     estado_id = models.ForeignKey(EstadoCita,on_delete=models.CASCADE,null=False)
+    
     manicurista_id = models.ForeignKey(Manicurista,on_delete=models.CASCADE,null=False)
+    
     cliente_id = models.ForeignKey(Cliente,on_delete=models.CASCADE,null=False);
+    
     Fecha = models.DateField(null=False)
+    
     Hora = models.TimeField(null=False)
+    
     Descripcion = models.TextField()
+    
     Total = models.DecimalField(max_digits=10,decimal_places=2,null=False,default=0.00)
     
     def __str__(self):

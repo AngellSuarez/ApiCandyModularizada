@@ -38,4 +38,5 @@ urlpatterns = [
     path('api/manicurista/',include('manicurista.urls')),
     path('api/proveedor/',include('proveedor.urls')),
     path('api/insumo/',include('insumo.urls')),
+    path('api/compras/',include('compra.urls'))
 ]

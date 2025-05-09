@@ -35,7 +35,7 @@ class ServicioCitaSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("El subtotal no puede ser negativo")
         return subtotal
         
-    def validate(self, data):
+    def validate(self, data):   
         # Validar que el servicio no este ya en la cita
         if 'cita_id' in data and 'servicio_id' in data:
             # Eliminar la instancia actual de la consulta al momento de actualizar

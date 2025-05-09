@@ -103,3 +103,6 @@ class ServicioCitaViewSet(viewsets.ModelViewSet):
         if errors:
             return Response({"created": created_items, "errors": errors}, status=status.HTTP_207_MULTI_STATUS)
         return Response({"created": created_items}, status=status.HTTP_201_CREATED)
+
+
+
