@@ -7,30 +7,42 @@ class ProveedorSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, data):
-        tipo_documento = data.get("tipo_documento")
         tipo_persona = data.get("tipo_persona")
-        numero_documento = data.get("numero_documento")
-        telefono = data.get("telefono")
-        email = data.get("email")
+        tipo_documento = data.get("tipo_documento")
 
-        # Validar campos obligatorios por tipo de documento y tipo de persona
         if tipo_documento == "NIT" or tipo_persona == "JURIDICA":
             required_fields = [
                 "nombre_empresa", "nombre_representante", "apellido_representante",
-                "telefono", "email", "direccion", "ciudad"
+                "telefono", "email", "direccion", "ciudad",
+                "telefono_representante", "email_representante"
             ]
             for field in required_fields:
                 if not data.get(field):
-                    raise serializers.ValidationError({field: f"Este campo es obligatorio para empresas (persona jurídica con NIT)."})
+                    raise serializers.ValidationError({
+                        field: "Este campo es obligatorio para empresas (persona jurídica o con NIT)."
+                    })
 
-        elif tipo_documento in ("CC", "CE") or tipo_persona == "NATURAL":
+        else:
             required_fields = [
                 "nombre_representante", "apellido_representante",
                 "telefono", "email", "direccion", "ciudad"
             ]
             for field in required_fields:
                 if not data.get(field):
-                    raise serializers.ValidationError({field: f"Este campo es obligatorio para personas naturales."})
+                    raise serializers.ValidationError({
+                        field: "Este campo es obligatorio para personas naturales."
+                    })
+
+            # Campos no permitidos para personas naturales
+            if data.get("nombre_empresa"):
+                raise serializers.ValidationError({
+                    "nombre_empresa": "Este campo no debe ser llenado para personas naturales."
+                })
+            if data.get("telefono_representante") or data.get("email_representante"):
+                raise serializers.ValidationError({
+                    "telefono": "No debe llenar estos campos si no es una empresa.",
+                    "email_representante": "No debe llenar estos campos si no es una empresa.",
+                })
 
         return data
 
