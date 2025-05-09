@@ -36,5 +36,6 @@ urlpatterns = [
     path('api/cita-venta/',include('cita.urls')),
     path('api/auth/',include('authrecuperacion.urls')),
     path('api/manicurista/',include('manicurista.urls')),
-    path('api/proveedor/',include('proveedor.urls'))
+    path('api/proveedor/',include('proveedor.urls')),
+    path('api/insumo/',include('insumo.urls')),
 ]
