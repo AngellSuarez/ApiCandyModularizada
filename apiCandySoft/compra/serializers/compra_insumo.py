@@ -74,8 +74,12 @@ class CompraInsumoSerializer(serializers.ModelSerializer):
         return compra_insumo
 
     def _actualizar_total_compra(self, compra):
-        total_compra = CompraInsumo.objects.filter(compra_id=compra).aggregate(
+        total_subtotales = CompraInsumo.objects.filter(compra_id=compra).aggregate(
             total_subtotales=models.Sum('subtotal')
         )['total_subtotales'] or 0
-        compra.total = total_compra
+
+        iva = compra.IVA  
+        total_con_iva = total_subtotales + (total_subtotales * iva)
+
+        compra.total = total_con_iva
         compra.save()
