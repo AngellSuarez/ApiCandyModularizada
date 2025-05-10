@@ -26,6 +26,12 @@ class ServicioSerializer(serializers.ModelSerializer):
         if not precio:
             raise serializers.ValidationError("El precio es requerido")
         return precio
+    
+    def validate_tipo(self, tipo):
+        tipo_choices = [choice[0] for choice in Servicio.TIPO_CHOICES]
+        if tipo not in tipo_choices:
+           raise serializers.ValidationError(f"Tipo no válido, opciones válidas: {tipo_choices}")
+        return tipo
 
     def validate_estado(self, estado):
         estado_choices = [choice[0] for choice in Servicio.ESTADOS_CHOICES]
