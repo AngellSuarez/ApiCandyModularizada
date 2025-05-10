@@ -1,7 +1,9 @@
 from rest_framework import viewsets, status
-from rest_framework.response import Response
+from datetime import timedelta, date
+from django.db.models import Sum
 from rest_framework.decorators import action
-
+from rest_framework.response import Response
+from rest_framework import status
 from ..models.cita_venta import CitaVenta
 from ..models.estado_cita import EstadoCita
 
@@ -144,3 +146,23 @@ Gracias por su comprensión.
             "message": f"Estado de la cita de venta cambiado a {nuevo_estado.estado}",
             "data": serializer.data
         })
+    
+    @action(detail=False, methods=['get'], url_path='ganancia-semanal')
+    def ganancia_semanal(self, request):
+        try:
+            hoy = date.today()
+            inicio_semana = hoy - timedelta(days=hoy.weekday())  # lunes
+            fin_semana = inicio_semana + timedelta(days=6)       # domingo
+
+            citas = CitaVenta.objects.filter(Fecha__range=[inicio_semana, fin_semana])
+            total_ganancia = citas.aggregate(total=Sum('Total'))['total'] or 0
+
+            return Response({
+                "ganancia_total": total_ganancia,
+                "fecha_inicio": inicio_semana.strftime("%d/%m/%Y"),
+                "fecha_fin": fin_semana.strftime("%d/%m/%Y")
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({"error": f"Error al calcular la ganancia semanal: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
