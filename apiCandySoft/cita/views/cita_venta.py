@@ -3,7 +3,6 @@ from datetime import timedelta, date
 from django.db.models import Sum
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
 from ..models.cita_venta import CitaVenta
 from ..models.estado_cita import EstadoCita
 
@@ -12,7 +11,7 @@ from ..serializers.cita_venta import CitaVentaSerializer
 from usuario.models.cliente import Cliente
 from usuario.models.manicurista import Manicurista
 
-#from utils.email_utils import enviar_correo
+# from utils.email_utils import enviar_correo
 
 class CitaVentaViewSet(viewsets.ModelViewSet):
     serializer_class = CitaVentaSerializer
@@ -34,11 +33,9 @@ class CitaVentaViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             cita = serializer.save()
 
-            # Obtener los datos necesarios para el correo
             cliente = Cliente.objects.get(pk=cita.cliente_id)
-            manicurista = Manicurista.objects.get(pk=cita.manicurista_id)  # Asumiendo que manicurista es un Usuario
+            manicurista = Manicurista.objects.get(pk=cita.manicurista_id)
 
-            # Preparar el contenido del correo
             asunto = "Confirmación de Cita - Servicio de Manicura"
             mensaje = f"""
 Estimado/a {cliente.nombre} {cliente.apellido},
@@ -57,8 +54,7 @@ Le esperamos en nuestra ubicación. Si necesita modificar o cancelar su cita, po
 ¡Gracias por confiar en nuestros servicios!
             """
 
-            # Enviar el correo
-            #enviar_correo(cliente.correo, asunto, mensaje)
+            # enviar_correo(cliente.correo, asunto, mensaje)
 
             headers = self.get_success_headers(serializer.data)
             return Response(
@@ -84,14 +80,12 @@ Le esperamos en nuestra ubicación. Si necesita modificar o cancelar su cita, po
     def destroy(self, request, *args, **kwargs):
         try:
             cita_venta = self.get_object()
-            estado_cancelado = EstadoCita.objects.get(Estado='cancelada')
-            cita_venta.estado_id = estado_cancelado  # Asume que estado_id almacena el ID del estado
+            estado_cancelado = EstadoCita.objects.get(Estado='Cancelada')
+            cita_venta.estado_id = estado_cancelado
             cita_venta.save()
 
-            # Obtener el cliente para enviar el correo
             cliente = Cliente.objects.get(pk=cita_venta.cliente_id)
 
-            # Preparar el contenido del correo
             asunto = "Cancelación de cita - Servicio de Manicura"
             mensaje = f"""
 Estimado/a {cliente.nombre} {cliente.apellido},
@@ -103,8 +97,7 @@ Si tiene alguna pregunta o desea reprogramar, por favor contáctenos.
 Gracias por su comprensión.
             """
 
-            # Enviar el correo
-            enviar_correo(cliente.correo, asunto, mensaje)
+            # enviar_correo(cliente.correo, asunto, mensaje)
 
             return Response(
                 {"message": "Cita de venta cancelada correctamente y notificación enviada al cliente"},
@@ -130,23 +123,23 @@ Gracias por su comprensión.
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
         cita_venta = self.get_object()
-        estado_pendiente = EstadoCita.objects.get(estado='pendiente')
-        estado_terminada = EstadoCita.objects.get(estado='terminada')
-        estado_reprogramada = EstadoCita.objects.get(estado='re programada')
+        estado_pendiente = EstadoCita.objects.get(Estado='Pendiente')
+        estado_terminada = EstadoCita.objects.get(Estado='Terminada')
+        estado_reprogramada = EstadoCita.objects.get(Estado='Re programada')
 
-        if cita_venta.estado == estado_pendiente:
+        if cita_venta.estado_id == estado_pendiente:
             nuevo_estado = estado_terminada
         else:
             nuevo_estado = estado_reprogramada
 
-        cita_venta.estado = nuevo_estado
+        cita_venta.estado_id = nuevo_estado
         cita_venta.save()
         serializer = self.get_serializer(cita_venta)
         return Response({
-            "message": f"Estado de la cita de venta cambiado a {nuevo_estado.estado}",
+            "message": f"Estado de la cita de venta cambiado a {nuevo_estado.Estado}",
             "data": serializer.data
         })
-    
+
     @action(detail=False, methods=['get'], url_path='ganancia-semanal')
     def ganancia_semanal(self, request):
         try:
@@ -154,7 +147,13 @@ Gracias por su comprensión.
             inicio_semana = hoy - timedelta(days=hoy.weekday())  # lunes
             fin_semana = inicio_semana + timedelta(days=6)       # domingo
 
-            citas = CitaVenta.objects.filter(Fecha__range=[inicio_semana, fin_semana])
+            estado_terminada = EstadoCita.objects.get(Estado='Terminada')
+
+            citas = CitaVenta.objects.filter(
+                Fecha__range=[inicio_semana, fin_semana],
+                estado_id=estado_terminada.id
+            )
+
             total_ganancia = citas.aggregate(total=Sum('Total'))['total'] or 0
 
             return Response({
@@ -162,6 +161,9 @@ Gracias por su comprensión.
                 "fecha_inicio": inicio_semana.strftime("%d/%m/%Y"),
                 "fecha_fin": fin_semana.strftime("%d/%m/%Y")
             }, status=status.HTTP_200_OK)
+        except EstadoCita.DoesNotExist:
+            return Response({"error": "El estado 'Terminada' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(e)
             return Response({"error": f"Error al calcular la ganancia semanal: {str(e)}"},
