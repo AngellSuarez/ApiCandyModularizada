@@ -1,8 +1,11 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django.utils.timezone import now
+from django.db.models import Count
 
 from ..models.cita_venta import CitaVenta
+from ..models.estado_cita import EstadoCita
 from ..models.servicio_cita import ServicioCita
 
 from ..serializers.servicio_cita import ServicioCitaSerializer
@@ -67,7 +70,6 @@ class ServicioCitaViewSet(viewsets.ModelViewSet):
                     cita = servicio_cita.cita_id
                     cliente = cita.cliente_id
 
-                    # Agrupar los servicios por cita
                     if cita.id not in citas_servicios:
                         citas_servicios[cita.id] = {
                             "cita": cita,
@@ -86,7 +88,6 @@ class ServicioCitaViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 errors.append({"error": str(e)})
 
-        # Enviar un solo correo por cita
         for data in citas_servicios.values():
             cita = data["cita"]
             cliente = data["cliente"]
@@ -97,12 +98,43 @@ class ServicioCitaViewSet(viewsets.ModelViewSet):
                 nombre_cliente=cliente.nombre,
                 fecha=cita.Fecha,
                 hora=cita.Hora,
-                servicios=servicios  # nuevo parámetro
+                servicios=servicios 
             )
 
         if errors:
             return Response({"created": created_items, "errors": errors}, status=status.HTTP_207_MULTI_STATUS)
         return Response({"created": created_items}, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['get'], url_path='servicios-mas-vendidos-mes')
+    def servicios_mas_vendidos_mes(self, request):
+       try:
+         hoy = now().date()
+         inicio_mes = hoy.replace(day=1)
+         estado_terminada = EstadoCita.objects.get(Estado='Terminada')
 
+         servicios = (
+            ServicioCita.objects
+            .filter(
+                cita_id__Fecha__gte=inicio_mes,
+                cita_id__Fecha__lte=hoy,
+                cita_id__estado_id=estado_terminada.id
+            )
+            .values('servicio_id', 'servicio_id__nombre')
+            .annotate(ventas=Count('id'))
+            .order_by('-ventas')[:3]
+         )
 
+         data = [
+            {
+                "name": item['servicio_id__nombre'],
+                "ventas": item['ventas']
+            }
+            for item in servicios
+         ]
 
+         return Response(data, status=status.HTTP_200_OK)
+       except Exception as e:
+         return Response(
+            {"error": f"Error al obtener los servicios más vendidos: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
