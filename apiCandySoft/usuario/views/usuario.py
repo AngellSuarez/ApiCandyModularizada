@@ -6,27 +6,76 @@ from django.shortcuts import get_object_or_404
 from ..serializers.usuario import UsuarioSerializer
 from ..models.usuario import Usuario
 
+from ..models.cliente import Cliente
+from ..models.manicurista import Manicurista
+
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
     
     # Sobreescribimos el método destroy para cambiar el estado en lugar de eliminar
+    
     def destroy(self, request, *args, **kwargs):
-        usuario = self.get_object()
-        usuario.estado = "inactivo"
-        usuario.save()
-        return Response({"message": "Usuario desactivado correctamente"}, status=status.HTTP_200_OK)
+        try:
+            usuario = self.get_object()
+            if usuario.estado == "activo":
+                usuario.estado = 'inactivo'
+                usuario.save()
+                return Response({'message': 'Usuario desactivado correctamente'}, status=status.HTTP_200_OK)
+            else:
+                usuario_id = usuario.id 
+                usuario.delete()
+
+                try:
+                    cliente = Cliente.objects.get(usuario_id=usuario_id)
+                    cliente.delete()
+                except Cliente.DoesNotExist:
+                    pass
+
+                try:
+                    manicurista = Manicurista.objects.get(usuario_id=usuario_id)
+                    manicurista.delete()
+                except Manicurista.DoesNotExist:
+                    pass
+
+                return Response({'message': 'Usuario y sus asociados eliminados permanentemente'}, status=status.HTTP_204_NO_CONTENT)
+
+        except Exception as e:
+            return Response({'message': f'Ocurrió un error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
     
     # Acción personalizada para cambiar el estado
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
-        usuario = self.get_object()
-        nuevo_estado = "activo" if usuario.estado == "inactivo" else "inactivo"
-        usuario.estado = nuevo_estado
-        usuario.save()
-        serializer = self.get_serializer(usuario)
-        return Response({"message": f"Estado del usuario cambiado a {nuevo_estado}", "data": serializer.data})
-    
+        try:
+            usuario = self.get_object()
+            nuevo_estado = 'activo' if usuario.estado == 'inactivo' else 'inactivo'
+            usuario.estado = nuevo_estado
+            usuario.save()
+            
+            try:
+                cliente = Cliente.objects.get(usuario_id = usuario)
+                cliente.estado = nuevo_estado
+                cliente.save()
+            except Cliente.DoesNotExist:
+                pass
+            
+            try:
+                manicurista = Manicurista.objects.get(usuario_id = usuario)
+                manicurista.estado = nuevo_estado
+                manicurista.save()
+            except Manicurista.DoesNotExist:
+                pass
+            
+            serializer = self.get_serializer(usuario)
+            return Response({
+                'message':f'Estado del usuario cambiado a {nuevo_estado} y sus asociados',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'message':f'Ocurrio un error {str(e)}'},status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+        
+         
     # Filtrar usuarios por estado
     @action(detail=False, methods=['get'])
     def activos(self, request):

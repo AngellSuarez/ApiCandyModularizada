@@ -16,17 +16,29 @@ class ManicuristaViewSet(viewsets.ModelViewSet):
     # Sobreescribimos el método destroy para cambiar el estado en lugar de eliminar
     def destroy(self, request, *args, **kwargs):
         manicurista = self.get_object()
-        manicurista.estado = "inactivo"
-        manicurista.save()
-        return Response({"message": "Manicurista desactivado correctamente"}, status=status.HTTP_200_OK)
+        
+        usuario_asociado = manicurista.usuario
+
+        if usuario_asociado.estado == "activo":
+            usuario_asociado = 'inactivo'
+            usuario_asociado.save()
+            return Response({'message':'Manicurista y usuario asociado desactivado correctamente'},status=status.HTTP_200_OK)
+        else:
+            return Response({'message':"El usuario y manicurista esta inactivo para eliminar hagalo desde usuario"},status=status.HTTP_400_BAD_REQUEST)
     
     # Acción personalizada para cambiar el estado
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
+        
         manicurista = self.get_object()
+        usuario_asociado = Usuario.objects.get(id = manicurista.usuario_id)
+        
         nuevo_estado = "activo" if manicurista.estado == "inactivo" else "inactivo"
         manicurista.estado = nuevo_estado
+        usuario_asociado.estado = nuevo_estado
+        
         manicurista.save()
+        usuario_asociado.save()
         serializer = self.get_serializer(manicurista)
         return Response({"message": f"Estado del manicurista cambiado a {nuevo_estado}", "data": serializer.data})
     

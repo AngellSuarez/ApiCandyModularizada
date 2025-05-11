@@ -13,21 +13,44 @@ class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.all()
     serializer_class = ClienteSerializer
     
+    
+    
     # Sobreescribimos el método destroy para cambiar el estado en lugar de eliminar
     def destroy(self, request, *args, **kwargs):
         cliente = self.get_object()
-        cliente.estado = "inactivo"
-        cliente.save()
-        return Response({"message": "Cliente desactivado correctamente"}, status=status.HTTP_200_OK)
+        
+        
+        usuario_asociado = Usuario.objects.get(id=cliente.usuario_id)
+        
+        if usuario_asociado.estado == "activo":
+            
+            usuario_asociado.estado = 'inactivo'
+            cliente.estado = 'inactivo'
+            
+            cliente.save()
+            usuario_asociado.save()
+            
+            return Response({'message':'Cliente y usuario asociado desactivado correctamente'},status=status.HTTP_200_OK)
+        else:
+            
+            return Response({'message':"El usuario y cliente ya estan inactivos, para eliminar hagalo desde usuario"},status=status.HTTP_400_BAD_REQUEST)
     
     # Acción personalizada para cambiar el estado
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
         cliente = self.get_object()
+        usuario_asociado = Usuario.objects.get(id = cliente.usuario_id);
+        
         nuevo_estado = "activo" if cliente.estado == "inactivo" else "inactivo"
+        
         cliente.estado = nuevo_estado
+        usuario_asociado.estado = nuevo_estado
+        
         cliente.save()
+        usuario_asociado.save()
+        
         serializer = self.get_serializer(cliente)
+        
         return Response({"message": f"Estado del cliente cambiado a {nuevo_estado}", "data": serializer.data})
     
     # Filtrar clientes por estado

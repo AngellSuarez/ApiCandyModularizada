@@ -4,15 +4,19 @@ from rol.models import Rol
 from django.contrib.auth.password_validation import validate_password
 
 class UsuarioSerializer(serializers.ModelSerializer):
+    rol_id_out = serializers.SerializerMethodField(read_only=True)
     rol_id = serializers.PrimaryKeyRelatedField(queryset=Rol.objects.all())
     
     class Meta:
         model = Usuario
-        fields = ['id', 'username', 'password', 'nombre', 'apellido', 'correo', 'estado', 'rol_id']
+        fields = ['id', 'username', 'password', 'nombre', 'apellido', 'correo', 'estado', 'rol_id', 'rol_id_out']
         # Hacer que la contraseña solo se pueda escribir y no leer
         extra_kwargs = {
             'password': {'write_only': True},
         }
+    
+    def get_rol_id_out(self, obj):
+        return obj.rol_id.nombre if obj and obj.rol_id else None
     
     def validate_rol_id(self, rol_id):
         #Verifica que el rol exista
