@@ -1,15 +1,15 @@
 from rest_framework import viewsets, status
 from datetime import timedelta, date
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from ..models.cita_venta import CitaVenta
 from ..models.estado_cita import EstadoCita
-
 from ..serializers.cita_venta import CitaVentaSerializer
-
 from usuario.models.cliente import Cliente
 from usuario.models.manicurista import Manicurista
+from collections import defaultdict
+import calendar
 
 # from utils.email_utils import enviar_correo
 
@@ -144,8 +144,8 @@ Gracias por su comprensión.
     def ganancia_semanal(self, request):
         try:
             hoy = date.today()
-            inicio_semana = hoy - timedelta(days=hoy.weekday())  # lunes
-            fin_semana = inicio_semana + timedelta(days=6)       # domingo
+            inicio_semana = hoy - timedelta(days=hoy.weekday())
+            fin_semana = inicio_semana + timedelta(days=6)
 
             estado_terminada = EstadoCita.objects.get(Estado='Terminada')
 
@@ -162,9 +162,102 @@ Gracias por su comprensión.
                 "fecha_fin": fin_semana.strftime("%d/%m/%Y")
             }, status=status.HTTP_200_OK)
         except EstadoCita.DoesNotExist:
-            return Response({"error": "El estado 'Terminada' no existe."},
+            return Response({"error": "El estado 'terminada' no existe."},
                             status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(e)
             return Response({"error": f"Error al calcular la ganancia semanal: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='servicios-dia')
+    def servicios_del_dia(self, request):
+        try:
+            hoy = date.today()
+            estado_terminada = EstadoCita.objects.get(Estado='Terminada')
+
+            citas_hoy = CitaVenta.objects.filter(
+                Fecha=hoy,
+                estado_id=estado_terminada.id
+            )
+
+            resumen = citas_hoy.values('manicurista_id__nombre', 'manicurista_id__apellido') \
+                .annotate(servicios=Count('id')) \
+                .order_by('-servicios')
+
+            data = [
+                {
+                    "name": f"{item['manicurista_id__nombre']} {item['manicurista_id__apellido']}",
+                    "servicios": item['servicios']
+                }
+                for item in resumen
+            ]
+
+            return Response(data, status=status.HTTP_200_OK)
+        except EstadoCita.DoesNotExist:
+            return Response({"error": "El estado 'Terminada' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(e)
+            return Response({"error": f"Error al obtener los servicios del día: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='clientes-top')
+    def clientes_top(self, request):
+        try:
+            estado_terminada = EstadoCita.objects.get(Estado='Terminada')
+
+            top_clientes = CitaVenta.objects.filter(estado_id=estado_terminada.id) \
+                .values('cliente_id__nombre', 'cliente_id__apellido') \
+                .annotate(citas=Count('id')) \
+                .order_by('-citas')[:3]
+
+            data = [
+                {
+                    "nombre": f"{item['cliente_id__nombre']} {item['cliente_id__apellido']}",
+                    "citas": item['citas']
+                }
+                for item in top_clientes
+            ]
+
+            return Response(data, status=status.HTTP_200_OK)
+        except EstadoCita.DoesNotExist:
+            return Response({"error": "El estado 'Terminada' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(e)
+            return Response({"error": f"Error al obtener los clientes con más citas: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='citas-semana')
+    def citas_semana(self, request):
+        try:
+            hoy = date.today()
+            inicio_semana = hoy - timedelta(days=hoy.weekday())
+            fin_semana = inicio_semana + timedelta(days=6)
+
+            estado_pendiente = EstadoCita.objects.get(Estado='Pendiente')
+            estado_terminada = EstadoCita.objects.get(Estado='Terminada')
+
+            citas = CitaVenta.objects.filter(
+                Fecha__range=[inicio_semana, fin_semana]
+            ).values('Fecha', 'estado_id')
+
+            dias = {i: {"name": calendar.day_name[i], "Pendiente": 0, "Terminada": 0} for i in range(7)}
+
+            for cita in citas:
+                dia_idx = cita['Fecha'].weekday()
+                if cita['estado_id'] == estado_pendiente.id:
+                    dias[dia_idx]["Pendiente"] += 1
+                elif cita['estado_id'] == estado_terminada.id:
+                    dias[dia_idx]["Terminada"] += 1
+
+            resultado = [dias[i] for i in range(7)]
+
+            return Response(resultado, status=status.HTTP_200_OK)
+        except EstadoCita.DoesNotExist:
+            return Response({"error": "Estados 'Pendiente' o 'Terminada' no existen."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(e)
+            return Response({"error": f"Error al obtener las citas de la semana: {str(e)}"},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
