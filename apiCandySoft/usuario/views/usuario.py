@@ -12,37 +12,50 @@ from ..models.manicurista import Manicurista
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
-    
-    # Sobreescribimos el método destroy para cambiar el estado en lugar de eliminar
+
     
     def destroy(self, request, *args, **kwargs):
         try:
             usuario = self.get_object()
+            usuario_id = usuario.id
+    
             if usuario.estado == "activo":
                 usuario.estado = 'inactivo'
                 usuario.save()
-                return Response({'message': 'Usuario desactivado correctamente'}, status=status.HTTP_200_OK)
+    
+                try:
+                    cliente = Cliente.objects.get(usuario_id=usuario_id)
+                    cliente.estado = 'inactivo'
+                    cliente.save()
+                except Cliente.DoesNotExist:
+                    pass
+                
+                try:
+                    manicurista = Manicurista.objects.get(usuario_id=usuario_id)
+                    manicurista.estado = 'inactivo'
+                    manicurista.save()
+                except Manicurista.DoesNotExist:
+                    pass
+                
+                return Response({'message': 'Usuario y sus asociados desactivados correctamente'}, status=status.HTTP_200_OK)
             else:
-                usuario_id = usuario.id 
                 usuario.delete()
-
                 try:
                     cliente = Cliente.objects.get(usuario_id=usuario_id)
                     cliente.delete()
                 except Cliente.DoesNotExist:
                     pass
-
+                
                 try:
                     manicurista = Manicurista.objects.get(usuario_id=usuario_id)
                     manicurista.delete()
                 except Manicurista.DoesNotExist:
                     pass
-
+                
                 return Response({'message': 'Usuario y sus asociados eliminados permanentemente'}, status=status.HTTP_204_NO_CONTENT)
-
+    
         except Exception as e:
-            return Response({'message': f'Ocurrió un error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+            return Response({'message': f'Ocurrió un error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
     
     # Acción personalizada para cambiar el estado
     @action(detail=True, methods=['patch'])

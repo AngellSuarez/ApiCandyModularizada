@@ -12,10 +12,16 @@ class ServicioViewSet(viewsets.ModelViewSet):
     serializer_class = ServicioSerializer
 
     def destroy(self, request, *args, **kwargs):
-        servicio = self.get_object()
-        servicio.estado = "inactivo"
-        servicio.save()
-        return Response({"message": "Servicio desactivado correctamente"}, status=status.HTTP_200_OK)
+        try:
+            servicio = self.get_object()
+            if servicio.estado == "activo":
+                servicio.estado = 'inactivo'
+                servicio.save()
+                return Response({'message':'Servicio desactivado correctamente'}, status=status.HTTP_200_OK)
+            else:
+                servicio.delete()
+        except Exception as e:
+            return Response({'message':'Servicio eliminado correctamente'}, status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
