@@ -1,0 +1,2 @@
+from .liquidaciones import LiquidacionSerializer
+from .novedades import NovedadesSerializer

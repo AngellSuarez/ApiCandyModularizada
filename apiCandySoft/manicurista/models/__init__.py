@@ -1,0 +1,1 @@
+from .novedades import Novedades
