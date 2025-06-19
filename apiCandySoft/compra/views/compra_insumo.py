@@ -8,9 +8,12 @@ from ..models.compra_insumo import CompraInsumo
 from ..models.compra import Compra
 from insumo.models import Insumo
 
+from permisos.custom_permissions import TienePermisoModulo
+
 class CompraInsumoViewSet(viewsets.ModelViewSet):
     queryset = CompraInsumo.objects.all()
     serializer_class = CompraInsumoSerializer
+    permission_classes = [TienePermisoModulo("Compra")]
 
     def get_queryset(self):
         compra_id = self.request.query_params.get('compra_id')

@@ -4,9 +4,12 @@ from rest_framework.response import Response
 from ..models.novedades import Novedades
 from ..serializers.novedades import NovedadesSerializer
 
+from permisos.custom_permissions import TienePermisoModulo
+
 class NovedadesViewSet(viewsets.ModelViewSet):
     serializer_class = NovedadesSerializer
     queryset = Novedades.objects.all()
+    permission_classes = [TienePermisoModulo("Manicurista")];
 
     def get_queryset(self):
         queryset = Novedades.objects.all()

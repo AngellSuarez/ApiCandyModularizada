@@ -12,9 +12,13 @@ from ..serializers.insumoAbastecimientoSerializer import InsumoAbastecimientoSer
 from usuario.models.manicurista import Manicurista
 from django.db.models import Count
 
+
+from permisos.custom_permissions import TienePermisoModulo
+
 class AbastecimientoViewSet(viewsets.ModelViewSet):
     queryset = Abastecimiento.objects.all().order_by('-fecha_creacion')
     serializer_class = AbastecimientoSerializer
+    permission_classes = [TienePermisoModulo("Abastecimiento")]
     
     def get_serializer_class(self):
         if self.action == 'retrieve':

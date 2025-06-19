@@ -10,9 +10,12 @@ from ..models.cliente import Cliente
 from ..models.manicurista import Manicurista
 from rol.models import Rol
 
+from permisos.custom_permissions import TienePermisoModulo
+
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
+    permission_classes = [TienePermisoModulo("Usuario")];
 
     
     def destroy(self, request, *args, **kwargs):

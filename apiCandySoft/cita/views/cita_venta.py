@@ -21,9 +21,12 @@ from manicurista.models.novedades import Novedades
 
 from utils.email_utils import enviar_correo_confirmacion
 
+from permisos.custom_permissions import TienePermisoModulo
+
 class CitaVentaViewSet(viewsets.ModelViewSet):
     serializer_class = CitaVentaSerializer
     queryset = CitaVenta.objects.all()
+    permission_classes = [TienePermisoModulo("Cita")]
 
     def get_queryset(self):
         queryset = CitaVenta.objects.all()

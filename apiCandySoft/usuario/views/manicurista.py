@@ -11,9 +11,12 @@ from cita.models.estado_cita import EstadoCita
 from ..models.usuario import Usuario
 from ..models.manicurista import Manicurista
 
+from permisos.custom_permissions import TienePermisoModulo
+
 class ManicuristaViewSet(viewsets.ModelViewSet):
     queryset = Manicurista.objects.all()
     serializer_class = ManicuristaSerializer
+    permission_classes = [TienePermisoModulo("Manicurista")];
     
     # Sobreescribimos el método destroy para cambiar el estado en lugar de eliminar
     def destroy(self, request, *args, **kwargs):

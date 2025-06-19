@@ -10,10 +10,13 @@ from ..models.compra_insumo import CompraInsumo  # Importa el modelo de CompraIn
 from proveedor.models import Proveedor
 from insumo.models import Insumo  # Importa el modelo de Insumo
 
+from permisos.custom_permissions import TienePermisoModulo
+
 
 class CompraViewSet(viewsets.ModelViewSet):
     queryset = Compra.objects.all()
     serializer_class = ComprasSerializer
+    permission_classes = [TienePermisoModulo("Compra")];
     http_method_names = ['get', 'post', 'delete', 'head']
 
     def get_queryset(self):

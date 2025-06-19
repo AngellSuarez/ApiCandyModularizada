@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, permissions;
+from rest_framework import viewsets, status;
 from rest_framework.response import Response;
 from rest_framework.decorators import action;
 from rest_framework.permissions import AllowAny;
@@ -9,13 +9,14 @@ from ..serializers import RolSerializer
 from ..serializers import PermisoRolSerializer
 from usuario.models.usuario import Usuario
 
-""" from ...utils.decorador_permisos import verificar_permiso """
+from permisos.custom_permissions import TienePermisoModulo
 
-#@verificar_permiso('rol')
+
+
 class RolViewSet(viewsets.ModelViewSet):
     queryset = Rol.objects.all();
     serializer_class = RolSerializer;
-    permission_classes = [AllowAny];
+    permission_classes = [TienePermisoModulo("Rol")];
     
     #detalles con servicios
     @action(detail=True, methods=['get'])

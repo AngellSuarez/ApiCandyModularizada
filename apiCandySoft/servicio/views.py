@@ -5,11 +5,14 @@ from rest_framework.decorators import action
 from .models import Servicio
 from .servicio_serializer import ServicioSerializer
 
+from permisos.custom_permissions import TienePermisoModulo
+
 
 # Create your views here.
 class ServicioViewSet(viewsets.ModelViewSet):
     queryset = Servicio.objects.all()
     serializer_class = ServicioSerializer
+    permission_classes = [TienePermisoModulo("Servicio")];
 
     def destroy(self, request, *args, **kwargs):
         try:

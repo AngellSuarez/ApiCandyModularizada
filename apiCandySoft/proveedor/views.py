@@ -8,12 +8,15 @@ from .models import Proveedor
 from compra.models import Compra
 from .serializer import ProveedorSerializer
 
+from permisos.custom_permissions import TienePermisoModulo
+
+
 # Create your views here.
 
 class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all()
     serializer_class = ProveedorSerializer;
-    permission_classes = [AllowAny];
+    permission_classes = [TienePermisoModulo("Proveedor")];
     
     def destroy(self,request,*args,**kwargs):
         instance = self.get_object();

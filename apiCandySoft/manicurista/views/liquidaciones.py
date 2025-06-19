@@ -6,9 +6,12 @@ from django.db.models import Max
 from ..models.liquidaciones import Liquidacion
 from ..serializers.liquidaciones import LiquidacionSerializer
 
+from permisos.custom_permissions import TienePermisoModulo
+
 class LiquidacionViewSet(viewsets.ModelViewSet):
     serializer_class = LiquidacionSerializer
     queryset = Liquidacion.objects.all()
+    permission_classes = [TienePermisoModulo("Liquidacion")];
 
     def get_queryset(self):
         manicurista_id = self.request.query_params.get('manicurista_id')
